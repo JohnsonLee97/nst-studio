@@ -1,12 +1,15 @@
 import json
+import os
+from datetime import timezone
+from zoneinfo import ZoneInfo
 from datetime import datetime, timezone
 from time import perf_counter
-
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
 from uuid import UUID, uuid4
-
+from db import get_generations, save_generation
+from mysql.connector import Error as MySQLError
 from flask import (
     Flask,
     render_template,
@@ -15,11 +18,22 @@ from flask import (
     url_for,
 )
 from PIL import Image, UnidentifiedImageError
-
 from nst import build_extractor, generate_image, load_image, tensor_to_image
 
 
 app = Flask(__name__)
+
+app.config["DISPLAY_TIMEZONE"] = os.environ["DISPLAY_TIMEZONE"]
+display_timezone = ZoneInfo(app.config["DISPLAY_TIMEZONE"])
+
+
+def format_local_time(utc_datetime):
+    return (
+        utc_datetime
+        .replace(tzinfo=timezone.utc)
+        .astimezone(display_timezone)
+        .strftime("%d %b %Y, %I:%M:%S %p")
+    )
 
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
@@ -158,6 +172,18 @@ def create():
 
                     message = "Your stylised image is ready."
 
+                    try:
+                        save_generation(run_details)
+                    except MySQLError:
+                        app.logger.exception(
+                            "Could not save generation to MySQL"
+                        )
+
+                        message = (
+                            "Your stylised image is ready, but saving "
+                            "its database history failed."
+                        )
+
                 except Exception:
                     app.logger.exception("Style transfer failed")
                     message = (
@@ -187,46 +213,42 @@ def generated_file(run_id):
 @app.route("/history")
 def history():
     runs = []
+    error_message = None
+    status_code = 200
 
-    if UPLOAD_FOLDER.exists():
-        for metadata_path in UPLOAD_FOLDER.glob("*/metadata.json"):
-            try:
-                with metadata_path.open("r", encoding="utf-8") as file:
-                    details = json.load(file)
+    try:
+        records = get_generations()
 
-                run_id = UUID(details["run_id"])
+        for record in records:
+            run_id = UUID(record["run_id"])
 
-                if metadata_path.parent.name != run_id.hex:
-                    continue
+            runs.append({
+                "completed_at": format_local_time(record["completed_at_utc"]),
+                "iterations": record["iterations"],
+                "style_weight": record["style_weight"],
+                "runtime_seconds": record["runtime_seconds"],
+                "image_url": url_for(
+                    "generated_file",
+                    run_id=run_id,
+                ),
+                "download_url": url_for(
+                    "generated_file",
+                    run_id=run_id,
+                    download="1",
+                ),
+            })
 
-                if not (metadata_path.parent / "generated.png").exists():
-                    continue
+    except MySQLError:
+        app.logger.exception("Could not load generation history")
+        error_message = "History is temporarily unavailable. Please try again."
+        status_code = 503
 
-                runs.append({
-                    "completed_at": details["completed_at_utc"],
-                    "iterations": details["iterations"],
-                    "style_weight": details["style_weight"],
-                    "runtime_seconds": details["runtime_seconds"],
-                    "image_url": url_for(
-                        "generated_file",
-                        run_id=run_id,
-                    ),
-                    "download_url": url_for(
-                        "generated_file",
-                        run_id=run_id,
-                        download="1",
-                    ),
-                })
-
-            except (OSError, ValueError, KeyError, TypeError):
-                app.logger.warning(
-                    "Skipping unreadable history record: %s",
-                    metadata_path,
-                )
-
-    runs.sort(key=lambda run: run["completed_at"], reverse=True)
-
-    return render_template("history.html", runs=runs)
+    return render_template(
+        "history.html",
+        runs=runs,
+        error_message=error_message,
+        display_timezone=app.config["DISPLAY_TIMEZONE"],
+    ), status_code
 
 if __name__ == "__main__":
     app.run(debug=True)

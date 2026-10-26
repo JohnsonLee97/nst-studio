@@ -27,6 +27,45 @@ The first generation downloads pretrained VGG19 weights and requires
 an internet connection. CPU generation can take time.
 
 Uploaded files and generated results are stored locally in uploads/.
-History currently uses JSON metadata files; MySQL is not implemented yet.
+History is stored in MySQL. Uploaded images and generated results remain
+in local run folders under uploads/. JSON metadata is retained per run.
+
+Completion timestamps are stored in UTC and displayed using the
+DISPLAY_TIMEZONE setting.
 
 This version is intended for local development.
+
+## Database setup
+
+Install and start MySQL Server, then create the database structure:
+
+```bash
+sudo mysql < schema.sql
+```
+
+Create a local MySQL account named `nst_app` with a private password.
+Grant it SELECT and INSERT permissions on `nst_studio.generations`.
+
+Copy the configuration template:
+
+```bash
+cp .env.example .env
+```
+
+Fill in your local database password in `.env`. Never commit `.env`.
+
+Test the connection:
+
+```bash
+python db.py
+```
+
+## Import existing local history
+
+To import existing uploads/\*/metadata.json records into MySQL:
+
+```bash
+python import_history.py
+```
+
+Existing run IDs are skipped. Image files must remain in their run folders.

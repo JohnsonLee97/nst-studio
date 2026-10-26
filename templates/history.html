@@ -31,7 +31,7 @@
         />
 
         <dl>
-          <dt>Completed at (UTC)</dt>
+          <dt>Completed at ({{ display_timezone }})</dt>
           <dd>{{ run.completed_at }}</dd>
 
           <dt>Iterations</dt>
@@ -46,9 +46,11 @@
 
         <a href="{{ run.download_url }}">Download image</a>
       </section>
+      {% else %} {% if error_message %}
+      <p role="alert">{{ error_message }}</p>
       {% else %}
       <p>No saved generations yet. Create an image to get started.</p>
-      {% endfor %}
+      {% endif %} {% endfor %}
 
       <div class="history-actions">
         <a class="create-link" href="{{ url_for('create') }}">
