@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Neural Style Transfer | Home</title>
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body class="home-page">
+    <main class="home-hero">
+      <div class="home-content">
+        <p class="home-eyebrow">Neural Style Transfer</p>
+
+        <h1>Your photo.<br />A different artistic perspective.</h1>
+
+        <p class="home-description">
+          Combine the structure of your photograph with the colours and textures
+          of an artwork. Explore the possibilities, one image at a time.
+        </p>
+
+        <a class="start-button" href="{{ url_for('create') }}">
+          Get Started <span aria-hidden="true">→</span>
+        </a>
+
+        <a class="home-history" href="{{ url_for('history') }}">
+          View generation history
+        </a>
+      </div>
+    </main>
+  </body>
+</html>

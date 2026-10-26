@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Generation History</title>
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    {% include 'partials/navbar.html' %}
+    <header>
+      <h1>Generation History</h1>
+      <p>Revisit your previous stylised images.</p>
+    </header>
+
+    <main>
+      {% for run in runs %}
+      <section class="history-card">
+        <h2>Generated image {{ loop.index }}</h2>
+
+        <img
+          class="result-image"
+          src="{{ run.image_url }}"
+          alt="Previously generated stylised image"
+          loading="lazy"
+        />
+
+        <dl>
+          <dt>Completed at (UTC)</dt>
+          <dd>{{ run.completed_at }}</dd>
+
+          <dt>Iterations</dt>
+          <dd>{{ run.iterations }}</dd>
+
+          <dt>Style weight</dt>
+          <dd>{{ run.style_weight }}</dd>
+
+          <dt>Processing time</dt>
+          <dd>{{ run.runtime_seconds }} seconds</dd>
+        </dl>
+
+        <a href="{{ run.download_url }}">Download image</a>
+      </section>
+      {% else %}
+      <p>No saved generations yet. Create an image to get started.</p>
+      {% endfor %}
+
+      <div class="history-actions">
+        <a class="create-link" href="{{ url_for('create') }}">
+          Create another image
+        </a>
+      </div>
+    </main>
+  </body>
+</html>

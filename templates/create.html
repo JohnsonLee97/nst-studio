@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neural Style Transfer</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    {% include 'partials/navbar.html' %}
+    <header>
+      <h1>Neural Style Transfer</h1>
+      <p>Combine your photo with an artistic style.</p>
+    </header>
+
+    <main>
+      <section>
+        <h2>How it works</h2>
+        <p>
+          Choose a content photo and a style image. The system creates a new
+          image that combines the photo's structure with the artwork's style.
+        </p>
+      </section>
+
+      <section class="upload-section">
+        <h2>Create your image</h2>
+
+        <form
+          action="{{ url_for('create') }}"
+          method="POST"
+          enctype="multipart/form-data"
+        >
+          <div class="upload-grid">
+            <div>
+              <label for="content-image">Content photo</label>
+              <p>The photo whose structure you want to keep.</p>
+
+              <input
+                type="file"
+                id="content-image"
+                name="content_image"
+                accept="image/jpeg,image/png"
+                required
+              />
+
+              <img
+                id="content-preview"
+                class="image-preview"
+                alt="Selected content photo"
+                hidden
+              />
+            </div>
+
+            <div>
+              <label for="style-image">Style image</label>
+              <p>The artwork whose colours and textures you want to use.</p>
+
+              <input
+                type="file"
+                id="style-image"
+                name="style_image"
+                accept="image/jpeg,image/png"
+                required
+              />
+
+              <img
+                id="style-preview"
+                class="image-preview"
+                alt="Selected style image"
+                hidden
+              />
+            </div>
+          </div>
+          <div class="settings">
+            <div>
+              <label for="style-weight">Style influence</label>
+
+              <select id="style-weight" name="style_weight">
+                <option value="0.001">Low</option>
+                <option value="0.01" selected>Baseline</option>
+                <option value="0.1">High</option>
+              </select>
+
+              <p>
+                Higher influence encourages stronger artistic patterns, but may
+                change more of the photo's structure.
+              </p>
+            </div>
+
+            <div>
+              <label for="iterations">Iterations</label>
+
+              <select id="iterations" name="iterations">
+                <option value="50" selected>50 — quick test</option>
+                <option value="100">100 iterations</option>
+                <option value="300">300 iterations</option>
+                <option value="500">500 iterations</option>
+              </select>
+
+              <p>
+                More iterations take longer and do not guarantee a more visually
+                appealing result.
+              </p>
+            </div>
+          </div>
+
+          <button type="submit">Generate image</button>
+
+          <p>
+            Generation may take a few minutes. Keep this page open after
+            submitting.
+          </p>
+        </form>
+
+        {% if result_url %}
+        <div class="result">
+          <h2>Your generated image</h2>
+
+          <img
+            class="result-image"
+            src="{{ result_url }}"
+            alt="Generated image combining your content photo and chosen style"
+          />
+
+          {% if run_details %}
+          <dl>
+            <dt>Iterations</dt>
+            <dd>{{ run_details.iterations }}</dd>
+
+            <dt>Style weight</dt>
+            <dd>{{ run_details.style_weight }}</dd>
+
+            <dt>Processing time</dt>
+            <dd>{{ run_details.runtime_seconds }} seconds</dd>
+          </dl>
+          {% endif %}
+
+          <p>
+            <a href="{{ download_url }}">Download generated image</a>
+          </p>
+        </div>
+        {% endif %}
+      </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+<nav class="site-nav" aria-label="Main navigation">
+  <div class="nav-inner">
+    <a class="nav-brand" href="{{ url_for('home') }}"> NST Studio </a>
+
+    <div class="nav-links">
+      <a
+        href="{{ url_for('create') }}"
+        aria-current="{{ 'page' if request.endpoint == 'create' else 'false' }}"
+      >
+        Create
+      </a>
+
+      <a
+        href="{{ url_for('history') }}"
+        aria-current="{{ 'page' if request.endpoint == 'history' else 'false' }}"
+      >
+        History
+      </a>
+    </div>
+  </div>
+</nav>

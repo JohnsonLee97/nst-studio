@@ -1,0 +1,15 @@
+# Python virtual environments
+.venv/
+.venv-nst/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Uploaded photos and generated results
+uploads/
+
+# Local secrets
+.env
+.env.*
+!.env.example
