@@ -1,0 +1,142 @@
+{
+  "title": "Effect of style weight",
+  "description": "Compare three style weights while keeping the content image, style image and other generation settings unchanged.",
+  "content_image": "content.jpg",
+  "style_image": "style.jpg",
+  "settings": {
+  "iterations": 300,
+  "max_dimension": 256,
+  "content_weight": 10000,
+  "total_variation_weight": 30
+  },
+
+  "content_weight_experiment": {
+    "title": "Effect of content weight",
+    "description": "Compare content weights while keeping style weight, image size, smoothing and iterations unchanged.",
+    "settings": {
+      "iterations": 300,
+      "max_dimension": 256,
+      "style_weight": 0.01,
+      "total_variation_weight": 30
+    },
+    "results": [
+      {
+        "label": "Low content weight",
+        "content_weight": 1000,
+        "image": "low_content_weight.png"
+      },
+      {
+        "label": "Baseline",
+        "content_weight": 10000,
+        "image": "baseline_run.png"
+      },
+      {
+        "label": "High content weight",
+        "content_weight": 100000,
+        "image": "high_content_weight.png"
+      }
+    ]
+  },
+
+  "iteration_experiment": {
+    "title": "Effect of iteration count",
+    "description": "Compare 100, 300 and 500 optimisation steps while keeping the images and remaining settings unchanged.",
+    "settings": {
+      "max_dimension": 256,
+      "style_weight": 0.01,
+      "content_weight": 10000,
+      "total_variation_weight": 30
+    },
+    "results": [
+      {
+        "label": "100 iterations",
+        "iterations": 100,
+        "image": "iterations_100.png"
+      },
+      {
+        "label": "300 iterations — baseline",
+        "iterations": 300,
+        "image": "baseline_run.png"
+      },
+      {
+        "label": "500 iterations",
+        "iterations": 500,
+        "image": "iterations_500.png"
+      }
+    ]
+  },    
+
+  "resolution_experiment": {
+    "title": "Effect of image resolution",
+    "description": "Compare maximum image dimensions of 256, 384 and 512 pixels while keeping the images and remaining settings unchanged.",
+    "settings": {
+      "iterations": 300,
+      "style_weight": 0.01,
+      "content_weight": 10000,
+      "total_variation_weight": 30
+    },
+    "results": [
+      {
+        "label": "256 pixels — baseline",
+        "max_dimension": 256,
+        "image": "baseline_run.png"
+      },
+      {
+        "label": "384 pixels",
+        "max_dimension": 384,
+        "image": "image_size_384.png"
+      },
+      {
+        "label": "512 pixels",
+        "max_dimension": 512,
+        "image": "image_size_512.png"
+      }
+    ]
+  },  
+
+  "smoothing_experiment": {
+    "title": "Effect of smoothing weight",
+    "description": "Compare total variation weights of 10, 30 and 100 while keeping the images and remaining settings unchanged.",
+    "settings": {
+      "iterations": 300,
+      "max_dimension": 256,
+      "style_weight": 0.01,
+      "content_weight": 10000
+    },
+    "results": [
+      {
+        "label": "Low smoothing",
+        "total_variation_weight": 10,
+        "image": "low_tv_weight.png"
+      },
+      {
+        "label": "Baseline",
+        "total_variation_weight": 30,
+        "image": "baseline_run.png"
+      },
+      {
+        "label": "High smoothing",
+        "total_variation_weight": 100,
+        "image": "high_tv_weight.png"
+      }
+    ]
+  },
+
+  "results": [
+    {
+      "label": "Low style weight",
+      "style_weight": 0.001,
+      "image": "low_style_weight.png"
+    },
+    {
+      "label": "Baseline",
+      "style_weight": 0.01,
+      "image": "baseline_run.png"
+    },
+    {
+      "label": "High style weight",
+      "style_weight": 0.1,
+      "image": "high_style_weight.png"
+    }
+  ]
+}

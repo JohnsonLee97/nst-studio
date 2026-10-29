@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>About | NST Studio</title>
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    {% include 'partials/navbar.html' %}
+
+    <header>
+      <h1>About NST Studio</h1>
+      <p>Exploring the relationship between photographs and artistic styles.</p>
+    </header>
+
+    <main>
+      <section>
+        <h2>What is neural style transfer?</h2>
+        <p>
+          Neural style transfer creates an image by combining the structure of a
+          photograph with visual characteristics from an artwork, such as
+          colours, textures and patterns.
+        </p>
+      </section>
+
+      <section class="about-section">
+        <h2>How this project works</h2>
+        <p>
+          NST Studio uses a pretrained VGG19 neural network to extract content
+          and style features. The network stays fixed while the generated
+          image's pixels are adjusted repeatedly to balance content, style and
+          smoothness.
+        </p>
+        <p>
+          Flask connects the webpage to the Python image-generation pipeline.
+          MySQL stores completed generation records, while image files remain in
+          local storage.
+        </p>
+      </section>
+
+      <section class="about-section">
+        <h2>From final-year project to web application</h2>
+        <p>
+          This application extends a Jupyter Notebook project investigating
+          neural style transfer. The website adds image uploads, adjustable
+          settings, downloadable results and database-backed generation history.
+        </p>
+      </section>
+
+      <section class="about-section">
+        <h2>Understanding the results</h2>
+        <p>
+          Stronger style influence can introduce more artistic texture while
+          changing the original structure. Additional iterations increase
+          processing time but do not guarantee a more visually appealing result.
+        </p>
+      </section>
+
+      <section class="about-section">
+        <h2>Current limitations</h2>
+        <ul>
+          <li>CPU processing can take time.</li>
+          <li>Images are resized for manageable processing.</li>
+          <li>Fine details may soften or become distorted.</li>
+          <li>Visual quality depends on the images and settings.</li>
+          <li>
+            This local version has shared history and does not separate records
+            into individual user accounts.
+          </li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

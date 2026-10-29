@@ -250,5 +250,21 @@ def history():
         display_timezone=app.config["DISPLAY_TIMEZONE"],
     ), status_code
 
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+@app.route("/experiments")
+def experiments():
+    data_path = Path(app.root_path) / "data" / "experiments.json"
+
+    with data_path.open("r", encoding="utf-8") as file:
+        experiment = json.load(file)
+
+    return render_template(
+        "experiments.html",
+        experiment=experiment,
+    )
+
 if __name__ == "__main__":
     app.run(debug=True)

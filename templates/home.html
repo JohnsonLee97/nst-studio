@@ -23,13 +23,26 @@
           of an artwork. Explore the possibilities, one image at a time.
         </p>
 
-        <a class="start-button" href="{{ url_for('create') }}">
-          Get Started <span aria-hidden="true">→</span>
-        </a>
+        <div class="home-primary-action">
+          <a class="start-button" href="{{ url_for('create') }}">
+            Get Started
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
 
-        <a class="home-history" href="{{ url_for('history') }}">
-          View generation history
-        </a>
+        <div class="home-secondary-actions">
+          <a class="home-secondary-button" href="{{ url_for('about') }}">
+            About
+          </a>
+
+          <a class="home-secondary-button" href="{{ url_for('history') }}">
+            History
+          </a>
+
+          <a class="home-secondary-button" href="{{ url_for('experiments') }}">
+            Experiments
+          </a>
+        </div>
       </div>
     </main>
   </body>

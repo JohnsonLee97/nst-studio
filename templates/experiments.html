@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Experiments | NST Studio</title>
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    {% include 'partials/navbar.html' %}
+
+    <header>
+      <h1>Experiments</h1>
+      <p>Explore how different settings affect the generated image.</p>
+    </header>
+
+    <main>
+      <section>
+        <h2>{{ experiment.title }}</h2>
+        <p>{{ experiment.description }}</p>
+
+        <div class="experiment-inputs">
+          <figure class="experiment-original">
+            <img
+              src="{{ url_for('static', filename='images/experiments/' ~ experiment.content_image) }}"
+              alt="Original content photograph"
+            />
+            <figcaption>Content photo</figcaption>
+          </figure>
+
+          <figure class="experiment-original">
+            <img
+              src="{{ url_for('static', filename='images/experiments/' ~ experiment.style_image) }}"
+              alt="Artwork used as the style reference"
+            />
+            <figcaption>Style reference</figcaption>
+          </figure>
+        </div>
+
+        <details class="experiment-settings">
+          <summary>Settings kept constant</summary>
+
+          <dl>
+            <dt>Iterations</dt>
+            <dd>{{ experiment.settings.iterations }}</dd>
+
+            <dt>Maximum image dimension</dt>
+            <dd>{{ experiment.settings.max_dimension }} pixels</dd>
+
+            <dt>Content weight</dt>
+            <dd>{{ experiment.settings.content_weight }}</dd>
+
+            <dt>Smoothing weight</dt>
+            <dd>{{ experiment.settings.total_variation_weight }}</dd>
+          </dl>
+        </details>
+
+        <div class="experiment-grid">
+          {% for result in experiment.results %}
+          <figure class="experiment-result">
+            <img
+              src="{{ url_for('static', filename='images/experiments/' ~ result.image) }}"
+              alt="{{ result.label }} generated result"
+              loading="lazy"
+            />
+
+            <figcaption>
+              <strong>{{ result.label }}</strong>
+              <span>Style weight: {{ result.style_weight }}</span>
+            </figcaption>
+          </figure>
+          {% endfor %}
+        </div>
+      </section>
+
+      {% set comparison = experiment.content_weight_experiment %}
+
+      <section class="experiment-comparison">
+        <h2>{{ comparison.title }}</h2>
+        <p>{{ comparison.description }}</p>
+
+        <p>Uses the content photo and style reference shown above.</p>
+
+        <details class="experiment-settings">
+          <summary>Settings kept constant</summary>
+
+          <dl>
+            <dt>Iterations</dt>
+            <dd>{{ comparison.settings.iterations }}</dd>
+
+            <dt>Maximum image dimension</dt>
+            <dd>{{ comparison.settings.max_dimension }} pixels</dd>
+
+            <dt>Style weight</dt>
+            <dd>{{ comparison.settings.style_weight }}</dd>
+
+            <dt>Smoothing weight</dt>
+            <dd>{{ comparison.settings.total_variation_weight }}</dd>
+          </dl>
+        </details>
+
+        <div class="experiment-grid">
+          {% for result in comparison.results %}
+          <figure class="experiment-result">
+            <img
+              src="{{ url_for('static', filename='images/experiments/' ~ result.image) }}"
+              alt="{{ result.label }} generated result"
+              loading="lazy"
+            />
+
+            <figcaption>
+              <strong>{{ result.label }}</strong>
+              <span>Content weight: {{ result.content_weight }}</span>
+            </figcaption>
+          </figure>
+          {% endfor %}
+        </div>
+
+        <h3>What to look for</h3>
+        <p>
+          Compare recognisable shapes, building edges and artistic texture.
+          Higher content weight gives greater importance to matching the
+          original photo's content features, but can reduce the visible
+          stylisation.
+        </p>
+      </section>
+
+      {% set iteration_comparison = experiment.iteration_experiment %}
+
+      <section class="experiment-comparison">
+        <h2>{{ iteration_comparison.title }}</h2>
+        <p>{{ iteration_comparison.description }}</p>
+
+        <p>Uses the content photo and style reference shown above.</p>
+
+        <details class="experiment-settings">
+          <summary>Settings kept constant</summary>
+
+          <dl>
+            <dt>Maximum image dimension</dt>
+            <dd>{{ iteration_comparison.settings.max_dimension }} pixels</dd>
+
+            <dt>Style weight</dt>
+            <dd>{{ iteration_comparison.settings.style_weight }}</dd>
+
+            <dt>Content weight</dt>
+            <dd>{{ iteration_comparison.settings.content_weight }}</dd>
+
+            <dt>Smoothing weight</dt>
+            <dd>{{ iteration_comparison.settings.total_variation_weight }}</dd>
+          </dl>
+        </details>
+
+        <div class="experiment-grid">
+          {% for result in iteration_comparison.results %}
+          <figure class="experiment-result">
+            <img
+              src="{{ url_for('static', filename='images/experiments/' ~ result.image) }}"
+              alt="{{ result.label }} generated result"
+              loading="lazy"
+            />
+
+            <figcaption>
+              <strong>{{ result.label }}</strong>
+            </figcaption>
+          </figure>
+          {% endfor %}
+        </div>
+
+        <h3>What to look for</h3>
+        <p>
+          Compare texture development, building edges and visible distortion.
+          Additional iterations allow further optimisation, but do not guarantee
+          better content preservation or a more attractive image.
+        </p>
+      </section>
+
+      {% set resolution_comparison = experiment.resolution_experiment %}
+
+      <section class="experiment-comparison">
+        <h2>{{ resolution_comparison.title }}</h2>
+        <p>{{ resolution_comparison.description }}</p>
+
+        <details class="experiment-settings">
+          <summary>Settings kept constant</summary>
+
+          <dl>
+            <dt>Iterations</dt>
+            <dd>{{ resolution_comparison.settings.iterations }}</dd>
+
+            <dt>Style weight</dt>
+            <dd>{{ resolution_comparison.settings.style_weight }}</dd>
+
+            <dt>Content weight</dt>
+            <dd>{{ resolution_comparison.settings.content_weight }}</dd>
+
+            <dt>Smoothing weight</dt>
+            <dd>{{ resolution_comparison.settings.total_variation_weight }}</dd>
+          </dl>
+        </details>
+
+        <div class="experiment-grid">
+          {% for result in resolution_comparison.results %}
+          <figure class="experiment-result">
+            <a
+              href="{{ url_for('static', filename='images/experiments/' ~ result.image) }}"
+              target="_blank"
+              rel="noopener"
+            >
+              <img
+                src="{{ url_for('static', filename='images/experiments/' ~ result.image) }}"
+                alt="{{ result.label }} generated result"
+                loading="lazy"
+              />
+            </a>
+
+            <figcaption>
+              <strong>{{ result.label }}</strong>
+            </figcaption>
+          </figure>
+          {% endfor %}
+        </div>
+
+        <h3>What to look for</h3>
+        <p>
+          Compare fine textures and architectural edges. The images are
+          displayed at similar widths for an overview. Select an image to open
+          it separately and inspect its detail.
+        </p>
+        <p>
+          Higher processing resolution increases computational demand. More
+          pixels do not automatically guarantee a more attractive result.
+        </p>
+      </section>
+
+      {% set smoothing_comparison = experiment.smoothing_experiment %}
+
+      <section class="experiment-comparison">
+        <h2>{{ smoothing_comparison.title }}</h2>
+        <p>{{ smoothing_comparison.description }}</p>
+
+        <details class="experiment-settings">
+          <summary>Settings kept constant</summary>
+
+          <dl>
+            <dt>Iterations</dt>
+            <dd>{{ smoothing_comparison.settings.iterations }}</dd>
+
+            <dt>Maximum image dimension</dt>
+            <dd>{{ smoothing_comparison.settings.max_dimension }} pixels</dd>
+
+            <dt>Style weight</dt>
+            <dd>{{ smoothing_comparison.settings.style_weight }}</dd>
+
+            <dt>Content weight</dt>
+            <dd>{{ smoothing_comparison.settings.content_weight }}</dd>
+          </dl>
+        </details>
+
+        <div class="experiment-grid">
+          {% for result in smoothing_comparison.results %}
+          <figure class="experiment-result">
+            <img
+              src="{{ url_for('static', filename='images/experiments/' ~ result.image) }}"
+              alt="{{ result.label }} generated result"
+              loading="lazy"
+            />
+
+            <figcaption>
+              <strong>{{ result.label }}</strong>
+              <span>
+                Smoothing weight: {{ result.total_variation_weight }}
+              </span>
+            </figcaption>
+          </figure>
+          {% endfor %}
+        </div>
+
+        <h3>What to look for</h3>
+        <p>
+          Compare small irregular patterns, texture and building edges. Higher
+          smoothing weight penalises differences between neighbouring pixels
+          more strongly. This can reduce noise, but may also soften useful
+          artistic detail.
+        </p>
+      </section>
+
+      <section class="experiment-notes">
+        <h2>What to look for</h2>
+        <p>
+          Compare changes in texture, colour and recognisable structure. Look
+          closely at building edges and fine details.
+        </p>
+        <p>
+          Stronger style influence can produce a more pronounced transformation,
+          but does not automatically make the result more visually appealing.
+        </p>
+        <p>
+          These examples use one content and style pair. The effects can differ
+          with other images.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

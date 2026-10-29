@@ -2,7 +2,25 @@
   <div class="nav-inner">
     <a class="nav-brand" href="{{ url_for('home') }}"> NST Studio </a>
 
-    <div class="nav-links">
+    <button
+      class="nav-toggle"
+      id="nav-toggle"
+      type="button"
+      aria-label="Open navigation"
+      aria-expanded="false"
+      aria-controls="nav-links"
+    >
+      ☰
+    </button>
+
+    <div class="nav-links" id="nav-links">
+      <a
+        href="{{ url_for('about') }}"
+        aria-current="{{ 'page' if request.endpoint == 'about' else 'false' }}"
+      >
+        About
+      </a>
+
       <a
         href="{{ url_for('create') }}"
         aria-current="{{ 'page' if request.endpoint == 'create' else 'false' }}"
@@ -16,6 +34,15 @@
       >
         History
       </a>
+
+      <a
+        href="{{ url_for('experiments') }}"
+        aria-current="{{ 'page' if request.endpoint == 'experiments' else 'false' }}"
+      >
+        Experiments
+      </a>
     </div>
   </div>
 </nav>
+
+<script src="{{ url_for('static', filename='js/navbar.js') }}" defer></script>
