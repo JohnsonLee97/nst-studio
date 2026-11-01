@@ -29,6 +29,7 @@
         <h2>Create your image</h2>
 
         <form
+          id="generation-form"
           action="{{ url_for('create') }}"
           method="POST"
           enctype="multipart/form-data"
@@ -38,51 +39,101 @@
               <label for="content-image">Content photo</label>
               <p>The photo whose structure you want to keep.</p>
 
-              <input
-                type="file"
-                id="content-image"
-                name="content_image"
-                accept="image/jpeg,image/png"
-                required
-              />
+              <div class="drop-zone">
+                <input
+                  type="file"
+                  id="content-image"
+                  name="content_image"
+                  accept="image/jpeg,image/png"
+                  required
+                />
 
-              <img
-                id="content-preview"
-                class="image-preview"
-                alt="Selected content photo"
-                hidden
-              />
+                <span class="drop-zone-text">
+                  <strong>Choose file</strong> or drag it here
+                  <small>JPG or PNG</small>
+                </span>
+              </div>
+
+              <div class="photo-preview" hidden>
+                <img
+                  id="content-preview"
+                  class="image-preview"
+                  alt="Selected content photo"
+                />
+
+                <button
+                  type="button"
+                  class="remove-photo"
+                  id="remove-content"
+                  aria-label="Remove content photo"
+                  title="Remove content photo"
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
             </div>
 
             <div>
               <label for="style-image">Style image</label>
               <p>The artwork whose colours and textures you want to use.</p>
 
-              <input
-                type="file"
-                id="style-image"
-                name="style_image"
-                accept="image/jpeg,image/png"
-                required
-              />
+              <div class="drop-zone">
+                <input
+                  type="file"
+                  id="style-image"
+                  name="style_image"
+                  accept="image/jpeg,image/png"
+                  required
+                />
 
-              <img
-                id="style-preview"
-                class="image-preview"
-                alt="Selected style image"
-                hidden
-              />
+                <span class="drop-zone-text">
+                  <strong>Choose file</strong> or drag it here
+                  <small>JPG or PNG</small>
+                </span>
+              </div>
+
+              <div class="photo-preview" hidden>
+                <img
+                  id="style-preview"
+                  class="image-preview"
+                  alt="Selected style image"
+                />
+
+                <button
+                  type="button"
+                  class="remove-photo"
+                  id="remove-style"
+                  aria-label="Remove style image"
+                  title="Remove style image"
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
             </div>
           </div>
+
           <div class="settings">
             <div>
               <label for="style-weight">Style influence</label>
 
-              <select id="style-weight" name="style_weight">
-                <option value="0.001">Low</option>
-                <option value="0.01" selected>Baseline</option>
-                <option value="0.1">High</option>
-              </select>
+              <div class="select-control">
+                <select id="style-weight" name="style_weight" required>
+                  <option value="" disabled selected>Select Style</option>
+                  <option value="0.001">Low</option>
+                  <option value="0.01">Baseline</option>
+                  <option value="0.1">High</option>
+                </select>
+
+                <button
+                  type="button"
+                  class="clear-selection"
+                  aria-label="Clear style selection"
+                  title="Clear style selection"
+                  disabled
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
 
               <p>
                 Higher influence encourages stronger artistic patterns, but may
@@ -93,12 +144,25 @@
             <div>
               <label for="iterations">Iterations</label>
 
-              <select id="iterations" name="iterations">
-                <option value="50" selected>50 — quick test</option>
-                <option value="100">100 iterations</option>
-                <option value="300">300 iterations</option>
-                <option value="500">500 iterations</option>
-              </select>
+              <div class="select-control">
+                <select id="iterations" name="iterations" required>
+                  <option value="" disabled selected>Select Iterations</option>
+                  <option value="50">50 — quick test</option>
+                  <option value="100">100 iterations</option>
+                  <option value="300">300 iterations</option>
+                  <option value="500">500 iterations</option>
+                </select>
+
+                <button
+                  type="button"
+                  class="clear-selection"
+                  aria-label="Clear iteration selection"
+                  title="Clear iteration selection"
+                  disabled
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
 
               <p>
                 More iterations take longer and do not guarantee a more visually
@@ -107,42 +171,58 @@
             </div>
           </div>
 
-          <button type="submit">Generate image</button>
+          <button id="generate-button" type="submit">
+            <span class="generate-label">Generate image</span>
+            <span class="generation-spinner" aria-hidden="true" hidden></span>
+          </button>
 
-          <p>
-            Generation may take a few minutes. Keep this page open after
-            submitting.
+          <p id="generation-status" role="status" hidden>
+            Generating your image. This may take a few minutes. Please keep this
+            page open.
           </p>
         </form>
 
-        {% if result_url %}
         <div class="result">
-          <h2>Your generated image</h2>
+          <div id="result-loading" class="result-loading" hidden>
+            <span
+              class="generation-spinner result-spinner"
+              aria-hidden="true"
+            ></span>
 
-          <img
-            class="result-image"
-            src="{{ result_url }}"
-            alt="Generated image combining your content photo and chosen style"
-          />
+            <p role="status">Generating your new image…</p>
+          </div>
 
-          {% if run_details %}
-          <dl>
-            <dt>Iterations</dt>
-            <dd>{{ run_details.iterations }}</dd>
+          {% if result_url %}
+          <div id="result-content">
+            <h2>Your generated image</h2>
 
-            <dt>Style weight</dt>
-            <dd>{{ run_details.style_weight }}</dd>
+            <img
+              class="result-image"
+              src="{{ result_url }}"
+              alt="Generated image combining your content photo and chosen style"
+            />
 
-            <dt>Processing time</dt>
-            <dd>{{ run_details.runtime_seconds }} seconds</dd>
-          </dl>
+            {% if run_details %}
+            <dl>
+              <dt>Iterations</dt>
+              <dd>{{ run_details.iterations }}</dd>
+
+              <dt>Style weight</dt>
+              <dd>{{ run_details.style_weight }}</dd>
+
+              <dt>Processing time</dt>
+              <dd>{{ run_details.runtime_seconds }} seconds</dd>
+            </dl>
+            {% endif %}
+
+            <p>
+              <a class="download-button" href="{{ download_url }}">
+                Download generated image
+              </a>
+            </p>
+          </div>
           {% endif %}
-
-          <p>
-            <a href="{{ download_url }}">Download generated image</a>
-          </p>
         </div>
-        {% endif %}
       </section>
     </main>
 

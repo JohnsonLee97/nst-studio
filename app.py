@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import timezone
 from zoneinfo import ZoneInfo
 from datetime import datetime, timezone
 from time import perf_counter
@@ -12,6 +11,8 @@ from db import get_generations, save_generation
 from mysql.connector import Error as MySQLError
 from flask import (
     Flask,
+    abort,
+    redirect,
     render_template,
     request,
     send_from_directory,
@@ -68,6 +69,52 @@ def create():
     result_url = None
     download_url = None
     run_details = None
+
+    if request.method == "GET" and "run_id" in request.args:
+        try:
+            run_id = UUID(request.args["run_id"])
+        except ValueError:
+            abort(404)
+
+        run_folder = UPLOAD_FOLDER / run_id.hex
+        metadata_path = run_folder / "metadata.json"
+        output_path = run_folder / "generated.png"
+
+        if not output_path.is_file():
+            abort(404)
+
+        try:
+            with metadata_path.open("r", encoding="utf-8") as file:
+                run_details = json.load(file)
+        except FileNotFoundError:
+            abort(404)
+        except (OSError, json.JSONDecodeError):
+            app.logger.exception("Could not read saved result metadata")
+            abort(500)
+
+        result_url = url_for("generated_file", run_id=run_id)
+
+        download_url = url_for(
+            "generated_file",
+            run_id=run_id,
+            download="1",
+        )
+
+        message = "Your stylised image is ready."
+
+        if run_details.get("history_saved", True) is False:
+            message = (
+                "Your stylised image is ready, but saving "
+                "its database history failed."
+            )
+
+        return render_template(
+            "create.html",
+            message=message,
+            result_url=result_url,
+            download_url=download_url,
+            run_details=run_details,
+        )
 
     if request.method == "POST":
         content_file = request.files.get("content_image")
@@ -157,20 +204,7 @@ def create():
                         "runtime_seconds": round(runtime_seconds, 2),
                     }
 
-                    metadata_path = run_folder / "metadata.json"
-
-                    with metadata_path.open("w", encoding="utf-8") as file:
-                        json.dump(run_details, file, indent=4)
-
-                    result_url = url_for("generated_file", run_id=run_id)
-
-                    download_url = url_for(
-                        "generated_file",
-                        run_id=run_id,
-                        download="1",
-                    )
-
-                    message = "Your stylised image is ready."
+                    run_details["history_saved"] = False
 
                     try:
                         save_generation(run_details)
@@ -178,12 +212,19 @@ def create():
                         app.logger.exception(
                             "Could not save generation to MySQL"
                         )
+                    else:
+                        run_details["history_saved"] = True
 
-                        message = (
-                            "Your stylised image is ready, but saving "
-                            "its database history failed."
-                        )
+                    metadata_path = run_folder / "metadata.json"
 
+                    with metadata_path.open("w", encoding="utf-8") as file:
+                        json.dump(run_details, file, indent=4)
+
+                    return redirect(
+                        url_for("create", run_id=run_id.hex),
+                        code=303,
+                    )
+                
                 except Exception:
                     app.logger.exception("Style transfer failed")
                     message = (
