@@ -1,0 +1,137 @@
+/* home.css */
+
+.home-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+
+    background-color: #111827;
+    color: #ffffff;
+}
+
+.home-hero {
+    flex: 1;
+    display: grid;
+    place-items: center;
+
+    min-height: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: clamp(48px, 8vw, 96px) 24px;
+
+    text-align: center;
+}
+
+.home-content {
+    width: 100%;
+    max-width: 800px;
+}
+
+.home-eyebrow {
+    margin: 0 0 20px;
+    color: #e5e7eb;
+    font-size: 0.9rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.home-content h1 {
+    margin: 0 0 24px;
+    font-size: clamp(2.25rem, 6vw, 4.5rem);
+    line-height: 1.1;
+    overflow-wrap: break-word;
+}
+
+.home-description {
+    max-width: 560px;
+    margin: 0 auto 32px;
+    color: #e5e7eb;
+}
+
+.home-primary-action {
+    display: flex;
+    justify-content: center;
+}
+
+.start-button,
+.home-secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+
+    min-height: 48px;
+    padding: 14px 28px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+
+    font-weight: bold;
+    text-decoration: none;
+
+    transition:
+        background-color 0.2s,
+        border-color 0.2s;
+}
+
+.start-button {
+    background-color: #fbbf24;
+    color: #111827;
+}
+
+.start-button:hover {
+    background-color: #fcd34d;
+}
+
+.home-secondary-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+
+    max-width: 600px;
+    margin: 24px auto 0;
+}
+
+.home-secondary-button {
+    padding: 12px 16px;
+    background-color: transparent;
+    color: #ffffff;
+    border-color: #6b7280;
+}
+
+.home-secondary-button:hover {
+    background-color: #1f2937;
+    border-color: #ffffff;
+}
+
+.start-button:focus-visible,
+.home-secondary-button:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 4px;
+}
+
+@media (max-width: 640px) {
+    .home-primary-action,
+    .home-secondary-actions {
+        width: 100%;
+        max-width: 400px;
+        margin-right: auto;
+        margin-left: auto;
+    }
+
+    .home-primary-action .start-button {
+        width: 100%;
+    }
+
+    .home-secondary-actions {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+.home-history {
+    display: block;
+    width: fit-content;
+    margin: 24px auto 0;
+    color: #e5e7eb;
+}

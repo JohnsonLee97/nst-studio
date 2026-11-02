@@ -1,0 +1,88 @@
+/* base.css */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #1e3a5f;
+    color: #1f2937;
+    line-height: 1.6;
+}
+
+header {
+    padding: 48px 20px;
+    background-color: #1e3a5f;
+    color: #ffffff;
+    text-align: center;
+}
+
+header p {
+    margin: 0;
+}
+
+h1 {
+    margin: 0 0 12px;
+    font-size: 2.5rem;
+}
+
+h2 {
+    margin-top: 0;
+}
+
+main {
+    max-width: 960px;
+    margin: 32px auto;
+    padding: 0 20px;
+}
+
+section {
+    padding: 24px;
+    background-color: #ffffff;
+    color: #1f2937;
+    text-align: left;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+button {
+    margin-top: 24px;
+    padding: 12px 24px;
+    background-color: #1e3a5f;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #2d527f;
+}
+
+.result-image {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.download-button {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #1e3a5f;
+    color: #ffffff;
+    border-radius: 8px;
+    text-decoration: none;
+}
+
+.download-button:hover {
+    background-color: #2d527f;
+}
+
+.download-button:focus-visible {
+    outline: 2px solid #1e3a5f;
+    outline-offset: 3px;
+}

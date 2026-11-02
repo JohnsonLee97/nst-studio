@@ -1,0 +1,69 @@
+/* experiments.css */
+
+.experiment-notes,
+.experiment-comparison {
+    margin-top: 24px;
+}
+
+.experiment-inputs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.experiment-original {
+    max-width: 360px;
+    margin: 24px auto;
+}
+
+.experiment-inputs .experiment-original {
+    width: 100%;
+}
+
+.experiment-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.experiment-result {
+    margin: 0;
+}
+
+.experiment-original img,
+.experiment-result img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.experiment-original figcaption,
+.experiment-result figcaption {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.experiment-result figcaption span {
+    display: block;
+    margin-top: 4px;
+}
+
+.experiment-settings {
+    margin: 24px 0;
+    padding: 16px;
+    background-color: #f3f4f6;
+    border-radius: 8px;
+}
+
+.experiment-settings summary {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+@media (max-width: 1400px) {
+    .experiment-grid,
+    .experiment-inputs {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,30 @@
+/* history.css */
+
+.history-card {
+    margin-bottom: 24px;
+}
+
+.history-actions {
+    margin: 32px 0;
+    text-align: left;
+}
+
+.create-link {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #ffffff;
+    color: #1e3a5f;
+    border: 2px solid #ffffff;
+    border-radius: 8px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.create-link:hover {
+    background-color: #e5e7eb;
+}
+
+.create-link:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 4px;
+}

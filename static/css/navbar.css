@@ -1,0 +1,133 @@
+/* navbar.css */
+
+.site-nav {
+    position: relative;
+    z-index: 100;
+    background-color: #1e3a5f;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.nav-inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    max-width: 1260px;
+    margin: 0 auto;
+    padding: 16px 20px;
+}
+
+.site-nav .nav-brand {
+    flex-shrink: 0;
+    color: #ffffff;
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.site-nav .nav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 8px 12px;
+
+    background-color: transparent;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    font: inherit;
+    cursor: pointer;
+}
+
+.site-nav .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.site-nav .nav-links a {
+    display: block;
+    padding: 12px 16px;
+    color: #ffffff;
+    text-align: left;
+    text-decoration: none;
+    border-radius: 6px;
+}
+
+.site-nav .nav-toggle:hover,
+.site-nav .nav-links a:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    text-decoration: none;
+}
+
+.site-nav .nav-links a[aria-current="page"] {
+    background-color: #ffffff;
+    color: #1e3a5f;
+    font-weight: bold;
+}
+
+.site-nav .nav-links a[aria-current="page"]:hover {
+    background-color: #e5e7eb;
+}
+
+.site-nav a:focus-visible,
+.site-nav button:focus-visible {
+    outline: 2px solid #fbbf24;
+    outline-offset: 4px;
+}
+
+@media (max-width: 1400px) {
+    .site-nav .nav-toggle {
+        display: inline-flex;
+    }
+
+    .site-nav .nav-links {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        display: none;
+
+        width: 100%;
+        height: 100dvh;
+        padding: 100px 24px 32px;
+        gap: 12px;
+
+        align-content: start;
+        overflow-y: auto;
+
+        background-color: #1e3a5f;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .site-nav .nav-links.is-open {
+        display: grid;
+    }
+
+    .site-nav .nav-links a {
+        width: 100%;
+    }
+
+
+
+    .site-nav .nav-brand,
+    .site-nav .nav-toggle {
+        position: relative;
+        z-index: 2;
+    }
+
+    .site-nav .nav-links a {
+        width: 100%;
+        padding: 16px;
+        font-size: 1.5rem;
+        text-align: center;
+    }    
+}
