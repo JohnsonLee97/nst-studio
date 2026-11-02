@@ -37,9 +37,10 @@ def save_generation(details):
             content_weight,
             total_variation_weight,
             max_dimension,
-            runtime_seconds
+            runtime_seconds,
+            owner_id
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
 
     values = (
@@ -51,6 +52,7 @@ def save_generation(details):
         details["total_variation_weight"],
         details["max_dimension"],
         details["runtime_seconds"],
+        details.get("owner_id"),
     )
 
     with get_connection() as connection:
@@ -59,7 +61,7 @@ def save_generation(details):
 
         connection.commit()
 
-def get_generations():
+def get_generations(owner_id):
     sql = """
         SELECT
             run_id,
@@ -68,15 +70,16 @@ def get_generations():
             style_weight,
             runtime_seconds
         FROM generations
+        WHERE owner_id = %s
         ORDER BY completed_at_utc DESC
         LIMIT 50
     """
 
     with get_connection() as connection:
         with connection.cursor(dictionary=True) as cursor:
-            cursor.execute(sql)
+            cursor.execute(sql, (owner_id,))
             return cursor.fetchall()
-
+        
 if __name__ == "__main__":
     with get_connection() as connection:
         with connection.cursor() as cursor:

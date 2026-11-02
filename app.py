@@ -7,6 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from threading import Lock
 from uuid import UUID, uuid4
+from secrets import token_hex
 from db import get_generations, save_generation
 from mysql.connector import Error as MySQLError
 from flask import (
@@ -16,13 +17,20 @@ from flask import (
     render_template,
     request,
     send_from_directory,
+    session,
     url_for,
 )
 from PIL import Image, UnidentifiedImageError
 from nst import build_extractor, generate_image, load_image, tensor_to_image
 
-
 app = Flask(__name__)
+
+app.config.update(
+    SECRET_KEY=os.environ["FLASK_SECRET_KEY"],
+    SESSION_COOKIE_NAME="nst_session",
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
 
 app.config["DISPLAY_TIMEZONE"] = os.environ["DISPLAY_TIMEZONE"]
 display_timezone = ZoneInfo(app.config["DISPLAY_TIMEZONE"])
@@ -59,6 +67,48 @@ def read_image(uploaded_file):
         image.load()
         return image.convert("RGB")
 
+@app.before_request
+def ensure_visitor_session():
+    if request.endpoint in {"create", "history", "generated_file"}:
+        if "owner_id" not in session:
+            session["owner_id"] = token_hex(32)
+
+
+def load_owned_generation(run_id):
+    run_folder = UPLOAD_FOLDER / run_id.hex
+    metadata_path = run_folder / "metadata.json"
+
+    try:
+        with metadata_path.open("r", encoding="utf-8") as file:
+            details = json.load(file)
+    except FileNotFoundError:
+        abort(404)
+    except (OSError, json.JSONDecodeError):
+        app.logger.exception("Could not read saved result metadata")
+        abort(500)
+
+    if not isinstance(details, dict):
+        abort(404)
+
+    if (
+        details.get("run_id") != run_id.hex
+        or details.get("owner_id") != session["owner_id"]
+    ):
+        abort(404)
+
+    if not (run_folder / "generated.png").is_file():
+        abort(404)
+
+    return details
+
+
+@app.after_request
+def prevent_private_result_caching(response):
+    if request.endpoint in {"create", "history", "generated_file"}:
+        response.headers["Cache-Control"] = "private, no-store"
+
+    return response
+
 @app.route("/")
 def home():
     return render_template("home.html")
@@ -91,6 +141,8 @@ def create():
         except (OSError, json.JSONDecodeError):
             app.logger.exception("Could not read saved result metadata")
             abort(500)
+
+        run_details = load_owned_generation(run_id)    
 
         result_url = url_for("generated_file", run_id=run_id)
 
@@ -195,6 +247,7 @@ def create():
 
                     run_details = {
                         "run_id": run_id.hex,
+                        "owner_id": session["owner_id"],
                         "completed_at_utc": datetime.now(timezone.utc).isoformat(),
                         "iterations": iterations,
                         "style_weight": style_weight,
@@ -240,9 +293,10 @@ def create():
         run_details=run_details,
     )
 
-
 @app.route("/generated/<uuid:run_id>")
 def generated_file(run_id):
+    load_owned_generation(run_id)
+
     run_folder = UPLOAD_FOLDER / run_id.hex
 
     return send_from_directory(
@@ -258,7 +312,7 @@ def history():
     status_code = 200
 
     try:
-        records = get_generations()
+        records = get_generations(session["owner_id"])
 
         for record in records:
             run_id = UUID(record["run_id"])

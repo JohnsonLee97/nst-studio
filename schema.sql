@@ -11,5 +11,10 @@ CREATE TABLE IF NOT EXISTS generations (
     content_weight DOUBLE NOT NULL,
     total_variation_weight DOUBLE NOT NULL,
     max_dimension INT UNSIGNED NOT NULL,
-    runtime_seconds DECIMAL(12, 2) NOT NULL
+    runtime_seconds DECIMAL(12, 2) NOT NULL,
+    owner_id CHAR(64) NULL,
+    INDEX idx_generations_owner_completed (
+        owner_id,
+        completed_at_utc
+    )
 );
