@@ -1,3 +1,4 @@
+{% from "macros/settings.html" import constant_settings %}
 <!doctype html>
 <html lang="en">
   <head>
@@ -50,23 +51,7 @@
           </figure>
         </div>
 
-        <details class="experiment-settings">
-          <summary>Settings kept constant</summary>
-
-          <dl>
-            <dt>Iterations</dt>
-            <dd>{{ experiment.settings.iterations }}</dd>
-
-            <dt>Maximum image dimension</dt>
-            <dd>{{ experiment.settings.max_dimension }} pixels</dd>
-
-            <dt>Content weight</dt>
-            <dd>{{ experiment.settings.content_weight }}</dd>
-
-            <dt>Smoothing weight</dt>
-            <dd>{{ experiment.settings.total_variation_weight }}</dd>
-          </dl>
-        </details>
+        {{ constant_settings(experiment.settings) }}
 
         <div class="experiment-grid">
           {% for result in experiment.results %}
@@ -91,26 +76,8 @@
       <section class="experiment-comparison">
         <h2>{{ comparison.title }}</h2>
         <p>{{ comparison.description }}</p>
-
+        {{ constant_settings(comparison.settings) }}
         <p>Uses the content photo and style reference shown above.</p>
-
-        <details class="experiment-settings">
-          <summary>Settings kept constant</summary>
-
-          <dl>
-            <dt>Iterations</dt>
-            <dd>{{ comparison.settings.iterations }}</dd>
-
-            <dt>Maximum image dimension</dt>
-            <dd>{{ comparison.settings.max_dimension }} pixels</dd>
-
-            <dt>Style weight</dt>
-            <dd>{{ comparison.settings.style_weight }}</dd>
-
-            <dt>Smoothing weight</dt>
-            <dd>{{ comparison.settings.total_variation_weight }}</dd>
-          </dl>
-        </details>
 
         <div class="experiment-grid">
           {% for result in comparison.results %}
@@ -143,26 +110,8 @@
       <section class="experiment-comparison">
         <h2>{{ iteration_comparison.title }}</h2>
         <p>{{ iteration_comparison.description }}</p>
-
+        {{ constant_settings(iteration_comparison.settings) }}
         <p>Uses the content photo and style reference shown above.</p>
-
-        <details class="experiment-settings">
-          <summary>Settings kept constant</summary>
-
-          <dl>
-            <dt>Maximum image dimension</dt>
-            <dd>{{ iteration_comparison.settings.max_dimension }} pixels</dd>
-
-            <dt>Style weight</dt>
-            <dd>{{ iteration_comparison.settings.style_weight }}</dd>
-
-            <dt>Content weight</dt>
-            <dd>{{ iteration_comparison.settings.content_weight }}</dd>
-
-            <dt>Smoothing weight</dt>
-            <dd>{{ iteration_comparison.settings.total_variation_weight }}</dd>
-          </dl>
-        </details>
 
         <div class="experiment-grid">
           {% for result in iteration_comparison.results %}
@@ -193,24 +142,7 @@
       <section class="experiment-comparison">
         <h2>{{ resolution_comparison.title }}</h2>
         <p>{{ resolution_comparison.description }}</p>
-
-        <details class="experiment-settings">
-          <summary>Settings kept constant</summary>
-
-          <dl>
-            <dt>Iterations</dt>
-            <dd>{{ resolution_comparison.settings.iterations }}</dd>
-
-            <dt>Style weight</dt>
-            <dd>{{ resolution_comparison.settings.style_weight }}</dd>
-
-            <dt>Content weight</dt>
-            <dd>{{ resolution_comparison.settings.content_weight }}</dd>
-
-            <dt>Smoothing weight</dt>
-            <dd>{{ resolution_comparison.settings.total_variation_weight }}</dd>
-          </dl>
-        </details>
+        {{ constant_settings(resolution_comparison.settings) }}
 
         <div class="experiment-grid">
           {% for result in resolution_comparison.results %}
@@ -251,24 +183,7 @@
       <section class="experiment-comparison">
         <h2>{{ smoothing_comparison.title }}</h2>
         <p>{{ smoothing_comparison.description }}</p>
-
-        <details class="experiment-settings">
-          <summary>Settings kept constant</summary>
-
-          <dl>
-            <dt>Iterations</dt>
-            <dd>{{ smoothing_comparison.settings.iterations }}</dd>
-
-            <dt>Maximum image dimension</dt>
-            <dd>{{ smoothing_comparison.settings.max_dimension }} pixels</dd>
-
-            <dt>Style weight</dt>
-            <dd>{{ smoothing_comparison.settings.style_weight }}</dd>
-
-            <dt>Content weight</dt>
-            <dd>{{ smoothing_comparison.settings.content_weight }}</dd>
-          </dl>
-        </details>
+        {{ constant_settings(smoothing_comparison.settings) }}
 
         <div class="experiment-grid">
           {% for result in smoothing_comparison.results %}

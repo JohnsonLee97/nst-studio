@@ -1,0 +1,28 @@
+{% macro constant_settings(settings) %} {% set fields = { "iterations":
+{"label": "Iterations"}, "max_dimension": { "label": "Maximum image dimension",
+"unit": "pixels" }, "style_weight": {"label": "Style weight"}, "content_weight":
+{"label": "Content weight"}, "total_variation_weight": {"label": "Smoothing
+weight"} } %}
+
+<details class="experiment-settings">
+  <summary>Settings kept constant</summary>
+
+  <dl class="result-details">
+    {% for key, value in settings.items() %} {% set field = fields.get(key, {})
+    %}
+
+    <div class="result-detail">
+      <dt class="result-detail-label">
+        {{ field.get("label", key | replace("_", " ") | capitalize) }}
+      </dt>
+
+      <dd class="result-detail-value">
+        {{ value }} {% if field.get("unit") %}
+        <span class="result-detail-unit"> {{ field["unit"] }} </span>
+        {% endif %}
+      </dd>
+    </div>
+    {% endfor %}
+  </dl>
+</details>
+{% endmacro %}

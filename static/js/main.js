@@ -63,7 +63,7 @@ const generateButton = document.getElementById("generate-button");
 const generationStatus = document.getElementById("generation-status");
 
 if (generationForm && generateButton && generationStatus) {
-    const spinner = generateButton.querySelector(".generation-spinner");
+    // const spinner = generateButton.querySelector(".generation-spinner");
     const label = generateButton.querySelector(".generate-label");
 
     function setGenerating(isGenerating) {
@@ -73,7 +73,7 @@ if (generationForm && generateButton && generationStatus) {
             ? "Generating"
             : "Generate image";
 
-        spinner.hidden = !isGenerating;
+        // spinner.hidden = !isGenerating;
         generationStatus.hidden = !isGenerating;
 
         const resultLoading = document.getElementById("result-loading");

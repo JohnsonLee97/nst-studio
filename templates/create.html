@@ -185,7 +185,7 @@
 
           <button id="generate-button" type="submit">
             <span class="generate-label">Generate image</span>
-            <span class="generation-spinner" aria-hidden="true" hidden></span>
+            <!-- <span class="generation-spinner" aria-hidden="true" hidden></span> -->
           </button>
 
           <p id="generation-status" role="status" hidden>
@@ -215,15 +215,28 @@
             />
 
             {% if run_details %}
-            <dl>
-              <dt>Iterations</dt>
-              <dd>{{ run_details.iterations }}</dd>
+            <dl class="result-details">
+              <div class="result-detail">
+                <dt class="result-detail-label">Iterations</dt>
+                <dd class="result-detail-value">
+                  {{ run_details.iterations }}
+                </dd>
+              </div>
 
-              <dt>Style weight</dt>
-              <dd>{{ run_details.style_weight }}</dd>
+              <div class="result-detail">
+                <dt class="result-detail-label">Style weight</dt>
+                <dd class="result-detail-value">
+                  {{ run_details.style_weight }}
+                </dd>
+              </div>
 
-              <dt>Processing time</dt>
-              <dd>{{ run_details.runtime_seconds }} seconds</dd>
+              <div class="result-detail">
+                <dt class="result-detail-label">Processing time</dt>
+                <dd class="result-detail-value">
+                  {{ run_details.runtime_seconds }}
+                  <span class="result-detail-unit">seconds</span>
+                </dd>
+              </div>
             </dl>
             {% endif %}
 

@@ -306,6 +306,44 @@ select {
     display: none;
 }
 
+.result-details {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.result-details > div {
+    padding: 1rem;
+    background-color: #f3f4f6;
+    border-radius: 8px;
+}
+
+.result-details dt {
+    margin-bottom: 0.5rem;
+    color: #4b5563;
+    font-size: 0.875rem;
+}
+
+.result-details dd {
+    margin: 0;
+    color: #1e3a5f;
+    font-size: 1.25rem;
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.result-details dd span {
+    font-size: 0.875rem;
+    font-weight: normal;
+}
+
+@media (max-width: 640px) {
+    .result-details {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 700px) {
     .select-control {
         position: relative;

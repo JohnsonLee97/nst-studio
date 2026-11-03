@@ -42,18 +42,31 @@
           loading="lazy"
         />
 
-        <dl>
-          <dt>Completed at ({{ display_timezone }})</dt>
-          <dd>{{ run.completed_at }}</dd>
+        <dl class="result-details">
+          <div class="result-detail result-details-wide">
+            <dt class="result-detail-label">
+              Completed at ({{ display_timezone }})
+            </dt>
+            <dd class="result-detail-value">{{ run.completed_at }}</dd>
+          </div>
 
-          <dt>Iterations</dt>
-          <dd>{{ run.iterations }}</dd>
+          <div class="result-detail">
+            <dt class="result-detail-label">Iterations</dt>
+            <dd class="result-detail-value">{{ run.iterations }}</dd>
+          </div>
 
-          <dt>Style weight</dt>
-          <dd>{{ run.style_weight }}</dd>
+          <div class="result-detail">
+            <dt class="result-detail-label">Style weight</dt>
+            <dd class="result-detail-value">{{ run.style_weight }}</dd>
+          </div>
 
-          <dt>Processing time</dt>
-          <dd>{{ run.runtime_seconds }} seconds</dd>
+          <div class="result-detail">
+            <dt class="result-detail-label">Processing time</dt>
+            <dd class="result-detail-value">
+              {{ run.runtime_seconds }}
+              <span class="result-detail-unit">seconds</span>
+            </dd>
+          </div>
         </dl>
 
         <a class="download-button" href="{{ run.download_url }}"
