@@ -44,7 +44,7 @@ sudo mysql < schema.sql
 ```
 
 Create a local MySQL account named `nst_app` with a private password.
-Grant it SELECT and INSERT permissions on `nst_studio.generations`.
+Grant it SELECT, INSERT and DELETE permissions on `nst_studio.generations`.
 
 Copy the configuration template:
 
@@ -69,3 +69,52 @@ python import_history.py
 ```
 
 Existing run IDs are skipped. Image files must remain in their run folders.
+
+## Image privacy and retention
+
+Generation history, result pages and downloads are restricted to the
+browser session that created them. Clearing session cookies or using
+another browser session removes access to previous results.
+
+Configure retention in `.env`:
+
+```dotenv
+IMAGE_RETENTION_HOURS=24
+```
+
+Results become inaccessible after the configured period. The cleanup
+script removes expired upload folders and database records.
+
+Preview cleanup without deleting anything:
+
+```bash
+python cleanup_history.py
+```
+
+Permanently delete expired runs:
+
+```bash
+python cleanup_history.py --delete
+```
+
+The configured database account needs SELECT, INSERT and DELETE
+permissions on `nst_studio.generations`.
+
+### Automatic cleanup
+
+For local WSL development, cron runs cleanup hourly using the project's
+virtual-environment Python. The latest output is written to
+`logs/cleanup.log`. The `logs/` directory must exist and is excluded
+from Git.
+
+The crontab is configured separately from this repository. Use
+`crontab -e` to add the following entry, replacing `/absolute/path/nst-web`
+with the actual project path:
+
+```cron
+0 * * * * /usr/bin/flock -n /absolute/path/nst-web/logs/cleanup.lock /absolute/path/nst-web/.venv-nst/bin/python /absolute/path/nst-web/cleanup_history.py --delete > /absolute/path/nst-web/logs/cleanup.log 2>&1
+```
+
+Cleanup requires WSL, cron and MySQL to be running. Expired files remain
+stored until a successful cleanup run. Folders without a usable
+completion timestamp are skipped for review.

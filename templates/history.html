@@ -24,6 +24,10 @@
     <header>
       <h1>Generation History</h1>
       <p>Revisit your previous stylised images.</p>
+      <p>
+        Results expire {{ image_retention_hours }} hours after generation.
+        Download any images you want to keep before they expire.
+      </p>
     </header>
 
     <main>
@@ -52,12 +56,16 @@
           <dd>{{ run.runtime_seconds }} seconds</dd>
         </dl>
 
-        <a href="{{ run.download_url }}">Download image</a>
+        <a class="download-button" href="{{ run.download_url }}"
+          >Download image</a
+        >
       </section>
       {% else %} {% if error_message %}
       <p role="alert">{{ error_message }}</p>
       {% else %}
-      <p>No saved generations yet. Create an image to get started.</p>
+      <p class="history-empty">
+        No saved generations yet. Create an image to get started.
+      </p>
       {% endif %} {% endfor %}
 
       <div class="history-actions">

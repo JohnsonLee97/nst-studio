@@ -13,3 +13,6 @@ uploads/
 .env
 .env.*
 !.env.example
+
+# Local runtime logs and cleanup lock files
+logs/

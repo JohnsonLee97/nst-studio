@@ -1,7 +1,7 @@
 import json
 import os
 from zoneinfo import ZoneInfo
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from time import perf_counter
 from functools import lru_cache
 from pathlib import Path
@@ -35,7 +35,6 @@ app.config.update(
 app.config["DISPLAY_TIMEZONE"] = os.environ["DISPLAY_TIMEZONE"]
 display_timezone = ZoneInfo(app.config["DISPLAY_TIMEZONE"])
 
-
 def format_local_time(utc_datetime):
     return (
         utc_datetime
@@ -46,6 +45,13 @@ def format_local_time(utc_datetime):
 
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
+app.config["IMAGE_RETENTION_HOURS"] = int(
+    os.environ["IMAGE_RETENTION_HOURS"]
+)
+
+if app.config["IMAGE_RETENTION_HOURS"] <= 0:
+    raise ValueError("IMAGE_RETENTION_HOURS must be greater than zero.")
+
 UPLOAD_FOLDER = Path(app.root_path) / "uploads"
 
 generation_lock = Lock()
@@ -54,7 +60,6 @@ generation_lock = Lock()
 @lru_cache(maxsize=1)
 def get_extractor():
     return build_extractor()
-
 
 def read_image(uploaded_file):
     with Image.open(uploaded_file.stream) as image:
@@ -72,7 +77,6 @@ def ensure_visitor_session():
     if request.endpoint in {"create", "history", "generated_file"}:
         if "owner_id" not in session:
             session["owner_id"] = token_hex(32)
-
 
 def load_owned_generation(run_id):
     run_folder = UPLOAD_FOLDER / run_id.hex
@@ -96,11 +100,28 @@ def load_owned_generation(run_id):
     ):
         abort(404)
 
+    try:
+        completed_at = datetime.fromisoformat(
+            details["completed_at_utc"]
+        )
+
+        if completed_at.tzinfo is None:
+            raise ValueError("Completion time must include a timezone.")
+
+        expires_at = completed_at + timedelta(
+            hours=app.config["IMAGE_RETENTION_HOURS"]
+        )
+    except (KeyError, TypeError, ValueError, OverflowError):
+        app.logger.exception("Invalid generation completion time")
+        abort(500)
+
+    if datetime.now(timezone.utc) >= expires_at:
+        abort(404)
+
     if not (run_folder / "generated.png").is_file():
         abort(404)
 
     return details
-
 
 @app.after_request
 def prevent_private_result_caching(response):
@@ -108,6 +129,12 @@ def prevent_private_result_caching(response):
         response.headers["Cache-Control"] = "private, no-store"
 
     return response
+
+@app.context_processor
+def retention_template_settings():
+    return {
+        "image_retention_hours": app.config["IMAGE_RETENTION_HOURS"]
+    }
 
 @app.route("/")
 def home():
@@ -126,26 +153,9 @@ def create():
         except ValueError:
             abort(404)
 
-        run_folder = UPLOAD_FOLDER / run_id.hex
-        metadata_path = run_folder / "metadata.json"
-        output_path = run_folder / "generated.png"
-
-        if not output_path.is_file():
-            abort(404)
-
-        try:
-            with metadata_path.open("r", encoding="utf-8") as file:
-                run_details = json.load(file)
-        except FileNotFoundError:
-            abort(404)
-        except (OSError, json.JSONDecodeError):
-            app.logger.exception("Could not read saved result metadata")
-            abort(500)
-
-        run_details = load_owned_generation(run_id)    
+        run_details = load_owned_generation(run_id)
 
         result_url = url_for("generated_file", run_id=run_id)
-
         download_url = url_for(
             "generated_file",
             run_id=run_id,
@@ -312,7 +322,14 @@ def history():
     status_code = 200
 
     try:
-        records = get_generations(session["owner_id"])
+        cutoff = datetime.now(timezone.utc) - timedelta(
+            hours=app.config["IMAGE_RETENTION_HOURS"]
+        )
+
+        records = get_generations(
+            session["owner_id"],
+            cutoff,
+        )
 
         for record in records:
             run_id = UUID(record["run_id"])

@@ -61,7 +61,11 @@ def save_generation(details):
 
         connection.commit()
 
-def get_generations(owner_id):
+def get_generations(owner_id, completed_after):
+    cutoff_utc = completed_after.astimezone(
+        timezone.utc
+    ).replace(tzinfo=None)
+
     sql = """
         SELECT
             run_id,
@@ -71,15 +75,16 @@ def get_generations(owner_id):
             runtime_seconds
         FROM generations
         WHERE owner_id = %s
+          AND completed_at_utc > %s
         ORDER BY completed_at_utc DESC
         LIMIT 50
     """
 
     with get_connection() as connection:
         with connection.cursor(dictionary=True) as cursor:
-            cursor.execute(sql, (owner_id,))
+            cursor.execute(sql, (owner_id, cutoff_utc))
             return cursor.fetchall()
-        
+                
 if __name__ == "__main__":
     with get_connection() as connection:
         with connection.cursor() as cursor:
