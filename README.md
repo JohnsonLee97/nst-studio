@@ -115,6 +115,53 @@ with the actual project path:
 0 * * * * /usr/bin/flock -n /absolute/path/nst-web/logs/cleanup.lock /absolute/path/nst-web/.venv-nst/bin/python /absolute/path/nst-web/cleanup_history.py --delete > /absolute/path/nst-web/logs/cleanup.log 2>&1
 ```
 
-Cleanup requires WSL, cron and MySQL to be running. Expired files remain
+Cleanup requires WSL, cron, MySQL and Redis to be running. Expired files remain
 stored until a successful cleanup run. Folders without a usable
 completion timestamp are skipped for review.
+
+## Background generation
+
+Image generation runs in a separate RQ worker using Redis.
+
+Install and start Redis in WSL:
+
+```bash
+sudo apt install redis-server
+sudo systemctl enable --now redis-server
+```
+
+Configure these settings in `.env`:
+
+```dotenv
+REDIS_URL=redis://127.0.0.1:6379/0
+RQ_QUEUE_NAME=nst
+GENERATION_TIMEOUT_SECONDS=900
+MAX_QUEUED_JOBS=3
+QUEUE_WAIT_TIMEOUT_SECONDS=600
+JOB_POLL_INTERVAL_SECONDS=2
+```
+
+After completing database and environment setup, start Flask:
+
+```bash
+source .venv-nst/bin/activate
+python app.py
+```
+
+In a second terminal, start one generation worker:
+
+```bash
+source .venv-nst/bin/activate
+python worker.py
+```
+
+Keep both processes running. The worker processes one job at a time.
+Each browser session can have one active generation. Additional visitors
+can queue jobs until the configured waiting capacity is reached.
+
+The page checks job status and opens the result when ready. Jobs that
+exceed the waiting limit expire without running.
+
+Cleanup preserves active jobs and removes eligible expired completed
+or unfinished runs. Redis must be available for cleanup to check job
+status safely.

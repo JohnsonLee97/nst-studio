@@ -1,18 +1,31 @@
 import json
 import os
+import shutil
+
+from redis.exceptions import RedisError
+from rq.exceptions import NoSuchJobError
+from rq.job import Job
+from rq.serializers import JSONSerializer
+
+from queue_setup import (
+    GenerationQueueFull,
+    OwnerAlreadyGenerating,
+    enqueue_generation,
+    generation_queue,
+    redis_connection,
+)
+
 from zoneinfo import ZoneInfo
 from datetime import datetime, timedelta, timezone
-from time import perf_counter
-from functools import lru_cache
 from pathlib import Path
-from threading import Lock
 from uuid import UUID, uuid4
 from secrets import token_hex
-from db import get_generations, save_generation
+from db import get_generations
 from mysql.connector import Error as MySQLError
 from flask import (
     Flask,
     abort,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -21,7 +34,6 @@ from flask import (
     url_for,
 )
 from PIL import Image, UnidentifiedImageError
-from nst import build_extractor, generate_image, load_image, tensor_to_image
 
 app = Flask(__name__)
 
@@ -52,14 +64,17 @@ app.config["IMAGE_RETENTION_HOURS"] = int(
 if app.config["IMAGE_RETENTION_HOURS"] <= 0:
     raise ValueError("IMAGE_RETENTION_HOURS must be greater than zero.")
 
+app.config["JOB_POLL_INTERVAL_SECONDS"] = int(
+    os.environ["JOB_POLL_INTERVAL_SECONDS"]
+)
+
+if app.config["JOB_POLL_INTERVAL_SECONDS"] <= 0:
+    raise ValueError(
+        "JOB_POLL_INTERVAL_SECONDS must be greater than zero."
+    )
+
 UPLOAD_FOLDER = Path(app.root_path) / "uploads"
 
-generation_lock = Lock()
-
-
-@lru_cache(maxsize=1)
-def get_extractor():
-    return build_extractor()
 
 def read_image(uploaded_file):
     with Image.open(uploaded_file.stream) as image:
@@ -74,7 +89,7 @@ def read_image(uploaded_file):
 
 @app.before_request
 def ensure_visitor_session():
-    if request.endpoint in {"create", "history", "generated_file"}:
+    if request.endpoint in {"create", "history", "generated_file",  "generation_status"}:
         if "owner_id" not in session:
             session["owner_id"] = token_hex(32)
 
@@ -125,7 +140,7 @@ def load_owned_generation(run_id):
 
 @app.after_request
 def prevent_private_result_caching(response):
-    if request.endpoint in {"create", "history", "generated_file"}:
+    if request.endpoint in {"create", "history", "generated_file", "generation_status"}:
         response.headers["Cache-Control"] = "private, no-store"
 
     return response
@@ -136,172 +151,270 @@ def retention_template_settings():
         "image_retention_hours": app.config["IMAGE_RETENTION_HOURS"]
     }
 
+def load_owned_job(run_id):
+    job = Job.fetch(
+        run_id.hex,
+        connection=redis_connection,
+        serializer=JSONSerializer,
+    )
+
+    if (
+        job.origin != generation_queue.name
+        or job.meta.get("owner_id") != session["owner_id"]
+        or job.meta.get("run_id") != run_id.hex
+    ):
+        abort(404)
+
+    return job
+
 @app.route("/")
 def home():
     return render_template("home.html")
 
 @app.route("/create", methods=["GET", "POST"])
 def create():
-    message = None
-    result_url = None
-    download_url = None
-    run_details = None
-
-    if request.method == "GET" and "run_id" in request.args:
-        try:
-            run_id = UUID(request.args["run_id"])
-        except ValueError:
-            abort(404)
-
-        run_details = load_owned_generation(run_id)
-
-        result_url = url_for("generated_file", run_id=run_id)
-        download_url = url_for(
-            "generated_file",
-            run_id=run_id,
-            download="1",
-        )
-
-        message = "Your stylised image is ready."
-
-        if run_details.get("history_saved", True) is False:
-            message = (
-                "Your stylised image is ready, but saving "
-                "its database history failed."
-            )
-
+    def show_page(message=None, status_code=200, pending_job=None):
         return render_template(
             "create.html",
             message=message,
-            result_url=result_url,
-            download_url=download_url,
-            run_details=run_details,
-        )
+            result_url=None,
+            download_url=None,
+            run_details=None,
+            pending_job=pending_job,
+        ), status_code
 
-    if request.method == "POST":
-        content_file = request.files.get("content_image")
-        iterations_text = request.form.get("iterations", "50")
-        style_weight_text = request.form.get("style_weight", "0.01")
+    if request.method == "GET":
+        if "run_id" in request.args:
+            try:
+                run_id = UUID(request.args["run_id"])
+            except ValueError:
+                abort(404)
 
-        allowed_iterations = {"50", "100", "300", "500"}
-        allowed_style_weights = {"0.001", "0.01", "0.1"}
+            run_details = load_owned_generation(run_id)
 
-        if (
-            iterations_text not in allowed_iterations
-            or style_weight_text not in allowed_style_weights
-        ):
+            message = "Your stylised image is ready."
+
+            if run_details.get("history_saved", True) is False:
+                message = (
+                    "Your stylised image is ready, but saving "
+                    "its database history failed."
+                )
+
             return render_template(
                 "create.html",
-                message="Please choose valid generation settings.",
-                result_url=None,
-                download_url=None,
-            ), 400
+                message=message,
+                result_url=url_for(
+                    "generated_file",
+                    run_id=run_id,
+                ),
+                download_url=url_for(
+                    "generated_file",
+                    run_id=run_id,
+                    download="1",
+                ),
+                run_details=run_details,
+                pending_job=None,
+            )
 
-        iterations = int(iterations_text)
-        style_weight = float(style_weight_text)
-        style_file = request.files.get("style_image")
-
-        if (
-            content_file is None
-            or style_file is None
-            or not content_file.filename
-            or not style_file.filename
-        ):
-            message = "Please select both images."
-        else:
+        if "job_id" in request.args:
             try:
-                content_image = read_image(content_file)
-                style_image = read_image(style_file)
-            except (
-                UnidentifiedImageError,
-                OSError,
-                ValueError,
-                Image.DecompressionBombError,
-            ):
-                message = (
-                    "Please select readable JPEG or PNG images "
-                    "with no more than 20 megapixels each."
+                run_id = UUID(request.args["job_id"])
+            except ValueError:
+                abort(404)
+
+            try:
+                load_owned_job(run_id)
+            except NoSuchJobError:
+                return show_page(
+                    "This generation job has expired or is unavailable.",
+                    status_code=404,
                 )
-            else:
-                try:
-                    run_id = uuid4()
-                    run_folder = UPLOAD_FOLDER / run_id.hex
-                    run_folder.mkdir(parents=True, exist_ok=False)
+            except RedisError:
+                app.logger.exception("Could not load generation job")
+                return show_page(
+                    "Generation status is temporarily unavailable. "
+                    "Refresh this page to try again.",
+                    status_code=503,
+                )
 
-                    content_path = run_folder / "content.png"
-                    style_path = run_folder / "style.png"
-                    output_path = run_folder / "generated.png"
+            return show_page(
+                pending_job={
+                    "status_url": url_for(
+                        "generation_status",
+                        run_id=run_id,
+                    ),
+                },
+            )
 
-                    content_image.save(content_path)
-                    style_image.save(style_path)
+        return show_page()
 
-                    with generation_lock:
-                        extractor = get_extractor()
+    iterations_text = request.form.get("iterations", "")
+    style_weight_text = request.form.get("style_weight", "")
 
-                        start_time = perf_counter()
+    allowed_iterations = {"50", "100", "300", "500"}
+    allowed_style_weights = {"0.001", "0.01", "0.1"}
 
-                        content_tensor = load_image(content_path)
-                        style_tensor = load_image(style_path)
+    if (
+        iterations_text not in allowed_iterations
+        or style_weight_text not in allowed_style_weights
+    ):
+        return show_page(
+            "Please choose valid generation settings.",
+            status_code=400,
+        )
 
-                        generated = generate_image(
-                            extractor,
-                            content_tensor,
-                            style_tensor,
-                            iterations=iterations,
-                            style_weight=style_weight,
-                        )
+    content_file = request.files.get("content_image")
+    style_file = request.files.get("style_image")
 
-                        tensor_to_image(generated).save(output_path)
+    if (
+        content_file is None
+        or style_file is None
+        or not content_file.filename
+        or not style_file.filename
+    ):
+        return show_page(
+            "Please select both images.",
+            status_code=400,
+        )
 
-                        runtime_seconds = perf_counter() - start_time
+    try:
+        content_image = read_image(content_file)
+        style_image = read_image(style_file)
+    except (
+        UnidentifiedImageError,
+        OSError,
+        ValueError,
+        Image.DecompressionBombError,
+    ):
+        return show_page(
+            "Please select readable JPEG or PNG images "
+            "with no more than 20 megapixels each.",
+            status_code=400,
+        )
 
-                    run_details = {
-                        "run_id": run_id.hex,
-                        "owner_id": session["owner_id"],
-                        "completed_at_utc": datetime.now(timezone.utc).isoformat(),
-                        "iterations": iterations,
-                        "style_weight": style_weight,
-                        "content_weight": 1e4,
-                        "total_variation_weight": 30,
-                        "max_dimension": 256,
-                        "runtime_seconds": round(runtime_seconds, 2),
-                    }
+    run_id = uuid4()
+    run_folder = UPLOAD_FOLDER / run_id.hex
 
-                    run_details["history_saved"] = False
+    try:
+        run_folder.mkdir(parents=True, exist_ok=False)
 
-                    try:
-                        save_generation(run_details)
-                    except MySQLError:
-                        app.logger.exception(
-                            "Could not save generation to MySQL"
-                        )
-                    else:
-                        run_details["history_saved"] = True
+        request_details = {
+            "run_id": run_id.hex,
+            "owner_id": session["owner_id"],
+            "submitted_at_utc": datetime.now(timezone.utc).isoformat(),
+        }
 
-                    metadata_path = run_folder / "metadata.json"
+        temporary_request = run_folder / "request.tmp.json"
 
-                    with metadata_path.open("w", encoding="utf-8") as file:
-                        json.dump(run_details, file, indent=4)
+        with temporary_request.open("w", encoding="utf-8") as file:
+            json.dump(request_details, file, indent=4)
 
-                    return redirect(
-                        url_for("create", run_id=run_id.hex),
-                        code=303,
-                    )
-                
-                except Exception:
-                    app.logger.exception("Style transfer failed")
-                    message = (
-                        "Image generation failed. "
-                        "Check the VS Code terminal for details."
-                    )
+        temporary_request.replace(run_folder / "request.json")
 
-    return render_template(
-        "create.html",
-        message=message,
-        result_url=result_url,
-        download_url=download_url,
-        run_details=run_details,
+        content_image.save(run_folder / "content.png")
+        style_image.save(run_folder / "style.png")
+
+    except OSError:
+        app.logger.exception("Could not save generation inputs")
+        return show_page(
+            "Your images could not be saved. Please try again.",
+            status_code=500,
+        )
+
+    try:
+        enqueue_generation(
+            run_id.hex,
+            session["owner_id"],
+            int(iterations_text),
+            float(style_weight_text),
+        )
+
+    except OwnerAlreadyGenerating as error:
+        shutil.rmtree(run_folder)
+
+        return redirect(
+            url_for("create", job_id=error.job_id),
+            code=303,
+        )
+
+    except GenerationQueueFull:
+        shutil.rmtree(run_folder)
+
+        return show_page(
+            "The generation queue is full. Please try again later.",
+            status_code=503,
+        )
+
+    except RedisError:
+        app.logger.exception(
+            "Could not confirm whether generation was queued"
+        )
+
+        # The submission may have reached Redis before the
+        # connection failed, so keep its input files.
+        return show_page(
+            "We could not confirm your submission. "
+            "Please wait before trying again.",
+            status_code=503,
+        )
+
+    return redirect(
+        url_for("create", job_id=run_id.hex),
+        code=303,
     )
+
+@app.route("/jobs/<uuid:run_id>")
+def generation_status(run_id):
+    try:
+        job = load_owned_job(run_id)
+        status = job.get_status()
+
+    except NoSuchJobError:
+        return jsonify(
+            status="unavailable",
+            message="This generation job has expired or is unavailable.",
+        ), 404
+
+    except RedisError:
+        app.logger.exception("Could not read generation status")
+
+        return jsonify(
+            status="unavailable",
+            message="Generation status is temporarily unavailable.",
+        ), 503
+
+    if status == "finished":
+        load_owned_generation(run_id)
+
+        return jsonify(
+            status="finished",
+            result_url=url_for(
+                "create",
+                run_id=run_id.hex,
+            ),
+        )
+
+    if status in {"failed", "stopped", "canceled"}:
+        return jsonify(
+            status="failed",
+            message="Image generation failed. Please try again.",
+        )
+
+    if status in {
+        "queued",
+        "deferred",
+        "scheduled",
+        "ready_to_enqueue",
+    }:
+        return jsonify(status="queued")
+
+    if status == "started":
+        return jsonify(status="generating")
+
+    return jsonify(
+        status="unavailable",
+        message="This generation job is unavailable.",
+    ), 404
 
 @app.route("/generated/<uuid:run_id>")
 def generated_file(run_id):

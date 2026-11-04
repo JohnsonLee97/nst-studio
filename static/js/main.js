@@ -64,18 +64,52 @@ const generationStatus = document.getElementById("generation-status");
 
 if (generationForm && generateButton && generationStatus) {
     const label = generateButton.querySelector(".generate-label");
+    const resultLoading = document.getElementById("result-loading");
+    const resultLoadingMessage = document.getElementById(
+        "result-loading-message"
+    );
+    const resultContent = document.getElementById("result-content");
+    const pendingJob = document.getElementById("pending-job");
 
-    function setGenerating(isGenerating) {
+    let pollTimer = null;
+    let pollController = null;
+    let pollingVersion = 0;
+    let jobEnded = false;
+
+    function setGenerating(isGenerating, phase = "generating") {
         generateButton.disabled = isGenerating;
-
-        label.textContent = isGenerating
-            ? "Generating"
-            : "Generate image";
-
         generationStatus.hidden = !isGenerating;
 
-        const resultLoading = document.getElementById("result-loading");
-        const resultContent = document.getElementById("result-content");
+        const messages = {
+            submitting: {
+                label: "Submitting",
+                text: "Submitting your images. Please wait.",
+            },
+            queued: {
+                label: "Queued",
+                text: "Your image is queued and will start when the worker is available.",
+            },
+            generating: {
+                label: "Generating",
+                text: "Generating your image. This may take a few minutes.",
+            },
+        };
+
+        if (isGenerating) {
+            const message = messages[phase];
+
+            label.textContent = message.label;
+            generationStatus.textContent = message.text;
+
+            if (resultLoadingMessage) {
+                resultLoadingMessage.textContent = message.text;
+            }
+
+            generationForm.setAttribute("aria-busy", "true");
+        } else {
+            label.textContent = "Generate image";
+            generationForm.removeAttribute("aria-busy");
+        }
 
         if (resultLoading) {
             resultLoading.hidden = !isGenerating;
@@ -84,20 +118,141 @@ if (generationForm && generateButton && generationStatus) {
         if (resultContent) {
             resultContent.hidden = isGenerating;
         }
+    }
 
-        if (isGenerating) {
-            generationForm.setAttribute("aria-busy", "true");
-        } else {
-            generationForm.removeAttribute("aria-busy");
+    function stopPolling() {
+        pollingVersion += 1;
+        window.clearTimeout(pollTimer);
+
+        if (pollController) {
+            pollController.abort();
+            pollController = null;
         }
     }
-    generationForm.addEventListener("submit", function () {
-        setGenerating(true);
+
+    function showFailure(message) {
+        jobEnded = true;
+        stopPolling();
+        setGenerating(false);
+
+        generationStatus.textContent = message;
+        generationStatus.hidden = false;
+    }
+
+    function showConnectionIssue() {
+        const message =
+            "Status is temporarily unavailable. We will keep checking automatically.";
+
+        generationStatus.textContent = message;
+        generationStatus.hidden = false;
+
+        if (resultLoadingMessage) {
+            resultLoadingMessage.textContent = message;
+        }
+    }
+
+    async function checkStatus(version) {
+        if (version !== pollingVersion || jobEnded) {
+            return;
+        }
+
+        const controller = new AbortController();
+        pollController = controller;
+
+        try {
+            const response = await fetch(pendingJob.dataset.statusUrl, {
+                credentials: "same-origin",
+                cache: "no-store",
+                signal: controller.signal,
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+
+            const data = await response.json().catch(() => null);
+
+            if (version !== pollingVersion) {
+                return;
+            }
+
+            if (response.status === 503 || response.status >= 500) {
+                showConnectionIssue();
+                return;
+            }
+
+            if (!response.ok) {
+                showFailure(
+                    data?.message ??
+                    "This generation is unavailable. Please create another image."
+                );
+                return;
+            }
+
+            if (data?.status === "finished" && data.result_url) {
+                jobEnded = true;
+                stopPolling();
+                window.location.replace(data.result_url);
+                return;
+            }
+
+            if (data?.status === "queued") {
+                setGenerating(true, "queued");
+                return;
+            }
+
+            if (data?.status === "generating") {
+                setGenerating(true, "generating");
+                return;
+            }
+
+            showFailure(
+                data?.message ??
+                "Image generation failed. Please try again."
+            );
+        } catch (error) {
+            if (version !== pollingVersion) {
+                return;
+            }
+
+            showConnectionIssue();
+        } finally {
+            if (pollController === controller) {
+                pollController = null;
+            }
+
+            if (version === pollingVersion && !jobEnded) {
+                pollTimer = window.setTimeout(
+                    () => checkStatus(version),
+                    Number(pendingJob.dataset.pollInterval)
+                );
+            }
+        }
+    }
+
+    function startPolling() {
+        stopPolling();
+        setGenerating(true, "queued");
+        checkStatus(pollingVersion);
+    }
+
+    generationForm.addEventListener("submit", function (event) {
+        if (pendingJob && !jobEnded) {
+            event.preventDefault();
+            return;
+        }
+
+        setGenerating(true, "submitting");
     });
 
     window.addEventListener("pageshow", function () {
-        setGenerating(false);
+        if (pendingJob && !jobEnded) {
+            startPolling();
+        } else {
+            setGenerating(false);
+        }
     });
+
+    window.addEventListener("pagehide", stopPolling);
 }
 
 document.querySelectorAll(".drop-zone").forEach(function (zone) {

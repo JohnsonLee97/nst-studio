@@ -193,6 +193,24 @@
           </p>
         </form>
 
+        {% if message %}
+        <p role="status">{{ message }}</p>
+        {% endif %} {% if pending_job %}
+        <div
+          id="pending-job"
+          data-status-url="{{ pending_job.status_url }}"
+          data-poll-interval="{{ job_poll_interval_ms }}"
+          hidden
+        ></div>
+
+        <noscript>
+          <p>
+            Your image has been submitted. Enable JavaScript to follow its
+            status.
+          </p>
+        </noscript>
+        {% endif %}
+
         <div class="result">
           <div id="result-loading" class="result-loading" hidden>
             <span
@@ -200,7 +218,9 @@
               aria-hidden="true"
             ></span>
 
-            <p role="status">Generating your new image…</p>
+            <p id="result-loading-message" role="status">
+              Generating your new image…
+            </p>
           </div>
 
           {% if result_url %}
