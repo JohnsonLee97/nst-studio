@@ -6,7 +6,7 @@ from redis.exceptions import RedisError
 from rq.exceptions import NoSuchJobError
 from rq.job import Job
 from rq.serializers import JSONSerializer
-
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from queue_setup import (
     GenerationQueueFull,
     OwnerAlreadyGenerating,
@@ -34,6 +34,11 @@ from flask import (
     url_for,
 )
 from PIL import Image, UnidentifiedImageError
+from flask_limiter import Limiter
+from flask_limiter.errors import RateLimitExceeded
+from flask_limiter.util import get_remote_address
+from werkzeug.exceptions import RequestEntityTooLarge
+from limits.errors import StorageError
 
 app = Flask(__name__)
 
@@ -42,6 +47,18 @@ app.config.update(
     SESSION_COOKIE_NAME="nst_session",
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
+)
+
+csrf = CSRFProtect(app)
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    storage_uri=os.environ["REDIS_URL"],
+    default_limits=[],
+    key_prefix="nst-submissions",
+    headers_enabled=True,
+    swallow_errors=False,
 )
 
 app.config["DISPLAY_TIMEZONE"] = os.environ["DISPLAY_TIMEZONE"]
@@ -167,11 +184,85 @@ def load_owned_job(run_id):
 
     return job
 
+@app.errorhandler(CSRFError)
+def handle_csrf_error(error):
+    return render_template(
+        "create.html",
+        message=(
+            "Your form could not be verified. "
+            "Please select your images and settings again, then submit."
+        ),
+        result_url=None,
+        download_url=None,
+        run_details=None,
+        pending_job=None,
+    ), 400
+
+@app.errorhandler(RateLimitExceeded)
+def handle_rate_limit(error):
+    return render_template(
+        "create.html",
+        message=(
+            "Too many generation submissions from your connection. "
+            "Please wait before trying again."
+        ),
+        result_url=None,
+        download_url=None,
+        run_details=None,
+        pending_job=None,
+    ), 429
+
+@app.errorhandler(RequestEntityTooLarge)
+def handle_upload_too_large(error):
+    return render_template(
+        "create.html",
+        message=(
+            "Your upload is too large. "
+            "Please choose smaller images and try again."
+        ),
+        result_url=None,
+        download_url=None,
+        run_details=None,
+        pending_job=None,
+    ), 413
+
+@app.errorhandler(RedisError)
+@app.errorhandler(StorageError)
+def handle_generation_service_error(error):
+    app.logger.error(
+        "Generation service unavailable",
+        exc_info=(type(error), error, error.__traceback__),
+    )
+
+    message = (
+        "Image generation is temporarily unavailable. "
+        "Please try again shortly."
+    )
+
+    if request.endpoint == "generation_status":
+        return jsonify(
+            status="unavailable",
+            message=message,
+        ), 503
+
+    return render_template(
+        "create.html",
+        message=message,
+        result_url=None,
+        download_url=None,
+        run_details=None,
+        pending_job=None,
+    ), 503
+
 @app.route("/")
 def home():
     return render_template("home.html")
 
 @app.route("/create", methods=["GET", "POST"])
+@limiter.limit(
+    lambda: os.environ["GENERATION_RATE_LIMIT"],
+    methods=["POST"],
+)
 def create():
     def show_page(message=None, status_code=200, pending_job=None):
         return render_template(
