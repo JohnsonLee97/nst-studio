@@ -165,3 +165,15 @@ exceed the waiting limit expire without running.
 Cleanup preserves active jobs and removes eligible expired completed
 or unfinished runs. Redis must be available for cleanup to check job
 status safely.
+
+## Local production test with Gunicorn
+
+Start MySQL and Redis, and run `python worker.py` in a separate WSL
+terminal. Stop `python app.py` if it is running, then run this from the
+project folder with `.venv-nst` activated:
+
+```bash
+FLASK_DEBUG=0 gunicorn --bind 127.0.0.1:5000 --workers 1 --worker-class gthread --threads 4 app:app
+```
+
+Open [http://localhost:5000](http://localhost:5000).

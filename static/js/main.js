@@ -78,7 +78,7 @@ if (generationForm && generateButton && generationStatus) {
 
     function setGenerating(isGenerating, phase = "generating") {
         generateButton.disabled = isGenerating;
-        generationStatus.hidden = !isGenerating;
+        generationStatus.hidden = true;
 
         const messages = {
             submitting: {
@@ -99,7 +99,6 @@ if (generationForm && generateButton && generationStatus) {
             const message = messages[phase];
 
             label.textContent = message.label;
-            generationStatus.textContent = message.text;
 
             if (resultLoadingMessage) {
                 resultLoadingMessage.textContent = message.text;
